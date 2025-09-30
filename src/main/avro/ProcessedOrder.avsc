@@ -1,0 +1,32 @@
+{
+  "type": "record",
+  "name": "ProcessedOrder",
+  "namespace": "com.example.orders",
+  "fields": [
+    {
+      "name": "orderId",
+      "type": "string",
+      "doc": "Unique order identifier"
+    },
+    {
+      "name": "customerId",
+      "type": "long",
+      "doc": "Customer ID"
+    },
+    {
+      "name": "status",
+      "type": "string",
+      "doc": "Order processing status"
+    },
+    {
+      "name": "processedAt",
+      "type": "long",
+      "doc": "Processing timestamp in milliseconds"
+    },
+    {
+      "name": "totalAmount",
+      "type": "double",
+      "doc": "Total order amount after processing"
+    }
+  ]
+}

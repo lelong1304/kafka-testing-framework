@@ -1,0 +1,36 @@
+{
+  "type": "record",
+  "name": "Order",
+  "namespace": "com.example.orders",
+  "fields": [
+    {
+      "name": "orderId",
+      "type": "string",
+      "doc": "Unique order identifier"
+    },
+    {
+      "name": "customerId",
+      "type": "long",
+      "doc": "Customer ID who placed the order"
+    },
+    {
+      "name": "amount",
+      "type": "double",
+      "doc": "Total order amount"
+    },
+    {
+      "name": "items",
+      "type": {
+        "type": "array",
+        "items": "string"
+      },
+      "doc": "List of items in the order"
+    },
+    {
+      "name": "timestamp",
+      "type": ["null", "long"],
+      "default": null,
+      "doc": "Order timestamp in milliseconds"
+    }
+  ]
+}
