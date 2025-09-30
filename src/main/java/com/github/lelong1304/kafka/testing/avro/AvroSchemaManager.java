@@ -22,7 +22,31 @@ public class AvroSchemaManager {
         schemaRegistryClient.register(subject, schema);
         schemaCache.put(subject, schema);
     }
+    public Schema getLatestSchema(String subject) throws Exception {
+        Schema cached = schemaCache.get(subject);
+        if (cached != null) {
+            return cached;
+        }
 
+        String schemaString = schemaRegistryClient.getLatestSchemaMetadata(subject).getSchema();
+        Schema schema = new Schema.Parser().parse(schemaString);
+        schemaCache.put(subject, schema);
+        return schema;
+    }
+
+    public Schema getSchemaById(int id) throws Exception {
+        Object rawSchema = schemaRegistryClient.getSchemaById(id).rawSchema();
+        if (rawSchema instanceof Schema) {
+            return (Schema) rawSchema;
+        }
+        return new Schema.Parser().parse(rawSchema.toString());
+    }
+
+    public void clearCache() {
+        schemaCache.clear();
+    }
+
+/*
     public Schema getLatestSchema(String subject) throws Exception {
         Schema cached = schemaCache.get(subject);
         if (cached != null) {
@@ -41,4 +65,6 @@ public class AvroSchemaManager {
     public void clearCache() {
         schemaCache.clear();
     }
+
+ */
 }
