@@ -1,0 +1,20 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;MODE=MySQL
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: 
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:schema.sql
+  h2:
+    console:
+      enabled: false
+
+logging:
+  level:
+    com.github.lelong1304.kafka.testing: DEBUG
+    io.confluent.kafka: WARN
+    org.springframework.kafka: INFO
+    org.apache.kafka: WARN
