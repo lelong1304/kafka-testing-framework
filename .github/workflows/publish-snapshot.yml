@@ -1,0 +1,35 @@
+---
+name: Publish SNAPSHOT to OSSRH
+on:
+  push:
+    branches: ["master"]
+permissions:
+  contents: read
+jobs:
+  publish-snapshot:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Determine project version
+        id: ver
+        run: |
+          VER=$(mvn -q -Dexec.executable=printf -Dexec.args='${project.version}' --non-recursive org.codehaus.mojo:exec-maven-plugin:3.5.0:exec)
+          echo "version=$VER" >> $GITHUB_OUTPUT
+          if [[ "$VER" != *-SNAPSHOT ]]; then echo "Not a SNAPSHOT version ($VER), skipping" && exit 78; fi
+      - name: Set up JDK 21 for signing and deploy
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: maven
+          server-id: ossrh
+          server-username: OSSRH_USERNAME
+          server-password: OSSRH_TOKEN
+          gpg-private-key: ${{ secrets.GPG_PRIVATE_KEY }}
+          gpg-passphrase: GPG_PASSPHRASE
+      - name: Deploy SNAPSHOT to OSSRH
+        env:
+          OSSRH_USERNAME: ${{ secrets.OSSRH_USERNAME }}
+          OSSRH_TOKEN: ${{ secrets.OSSRH_TOKEN }}
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+        run: mvn -B -ntp -P release -DskipTests=false deploy
