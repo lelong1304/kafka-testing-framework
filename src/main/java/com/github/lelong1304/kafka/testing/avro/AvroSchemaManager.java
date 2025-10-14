@@ -1,7 +1,6 @@
 package com.github.lelong1304.kafka.testing.avro;
 
-import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
-import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import com.github.lelong1304.kafka.testing.framework.MockSchemaRegistry;
 import org.apache.avro.Schema;
 import org.springframework.stereotype.Component;
 
@@ -11,38 +10,40 @@ import java.util.concurrent.ConcurrentMap;
 @Component
 public class AvroSchemaManager {
 
-    private final SchemaRegistryClient schemaRegistryClient;
+    private final MockSchemaRegistry schemaRegistry;
     private final ConcurrentMap<String, Schema> schemaCache = new ConcurrentHashMap<>();
 
     public AvroSchemaManager() {
-        this.schemaRegistryClient = new MockSchemaRegistryClient();
+        this.schemaRegistry = new MockSchemaRegistry();
     }
 
     public void registerSchema(String subject, Schema schema) throws Exception {
-        schemaRegistryClient.register(subject, schema);
+        schemaRegistry.register(subject, schema);
         schemaCache.put(subject, schema);
     }
+    
     public Schema getLatestSchema(String subject) throws Exception {
         Schema cached = schemaCache.get(subject);
         if (cached != null) {
             return cached;
         }
 
-        String schemaString = schemaRegistryClient.getLatestSchemaMetadata(subject).getSchema();
-        Schema schema = new Schema.Parser().parse(schemaString);
-        schemaCache.put(subject, schema);
+        Schema schema = schemaRegistry.getLatestSchema(subject);
+        if (schema != null) {
+            schemaCache.put(subject, schema);
+        }
         return schema;
     }
 
     public Schema getSchemaById(int id) throws Exception {
-        Object rawSchema = schemaRegistryClient.getSchemaById(id).rawSchema();
-        if (rawSchema instanceof Schema) {
-            return (Schema) rawSchema;
-        }
-        return new Schema.Parser().parse(rawSchema.toString());
+        return schemaRegistry.getSchemaById(id);
     }
 
     public void clearCache() {
         schemaCache.clear();
+    }
+    
+    public MockSchemaRegistry getSchemaRegistry() {
+        return schemaRegistry;
     }
 }
