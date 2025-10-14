@@ -1,26 +1,89 @@
 # Kafka Testing Framework with Avro Support
 
-A comprehensive Java library that enables behavior-driven testing of Kafka applications using Gherkin syntax with **Avro message format support** and database verification capabilities.
+A comprehensive Java library that enables behavior-driven testing of Kafka applications using Gherkin syntax with **Avro message format support** and database verification capabilities. **Now includes a schema-agnostic testing framework that works without external Schema Registry or Kafka dependencies.**
 
 [![Java](https://img.shields.io/badge/Java-11+-orange.svg)](https://www.oracle.com/java/)
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-2.7+-brightgreen.svg)](https://spring.io/projects/spring-boot)
 [![Kafka](https://img.shields.io/badge/Apache%20Kafka-3.0+-red.svg)](https://kafka.apache.org/)
 [![Avro](https://img.shields.io/badge/Apache%20Avro-1.11+-blue.svg)](https://avro.apache.org/)
+[![Testcontainers](https://img.shields.io/badge/Testcontainers-1.19+-blue.svg)](https://testcontainers.org/)
 
 ## 🚀 Features
 
 - 🥒 **Gherkin-based Test Scenarios**: Write tests in natural language using Cucumber/Gherkin
-- 📨 **Kafka Integration**: Easy setup for embedded Kafka clusters and message verification
-- 🔄 **Avro Message Support**: Full support for Avro serialization with schema registry
+- 📨 **Kafka Integration**: Easy setup with Testcontainers or embedded Kafka clusters
+- 🔄 **Avro Message Support**: Full support for Avro serialization with GenericRecord (schema-agnostic)
+- 🏠 **No External Dependencies**: Works without real Schema Registry - uses MockSchemaRegistry
+- 🧪 **Testcontainers Support**: True integration testing with containerized Kafka
 - 🗄️ **Database State Verification**: Support for multiple database types with before/after state comparison
 - ⚡ **Asynchronous Testing**: Handle async Kafka message processing with configurable timeouts
-- 🧪 **Test Isolation**: Each test scenario starts with a clean state
-- 📋 **Schema Evolution**: Test schema compatibility and evolution
 - 🔧 **Production Ready**: Comprehensive error handling and logging
+- 📋 **Schema Evolution**: Test schema compatibility and evolution
+
+## 🆕 New Framework Capabilities
+
+The framework now includes a **schema-agnostic Kafka testing harness** that allows you to:
+
+1. **Produce and consume Avro messages** using GenericRecord without a real Schema Registry
+2. **Use Testcontainers** for true integration testing without manual Kafka setup
+3. **Test with any Avro schema** dynamically at runtime
+4. **Work offline** - no external dependencies required
+
+See [FRAMEWORK_USAGE.md](FRAMEWORK_USAGE.md) for detailed usage examples.
 
 ## 📦 Quick Start
 
-### 1. Add Dependency
+### Option 1: Using the Framework Directly (Testcontainers)
+
+```java
+@Testcontainers
+public class MyKafkaTest {
+
+    @Container
+    private static final KafkaContainer kafka = new KafkaContainer(
+        DockerImageName.parse("confluentinc/cp-kafka:7.5.0")
+    );
+
+    @Test
+    public void testAvroMessaging() throws Exception {
+        // Setup framework
+        MockSchemaRegistry registry = new MockSchemaRegistry();
+        GenericAvroSerdes serdes = new GenericAvroSerdes(registry);
+        String bootstrapServers = kafka.getBootstrapServers();
+        
+        // Define schema
+        String schemaJson = "{"
+            + "\"type\": \"record\","
+            + "\"name\": \"User\","
+            + "\"fields\": ["
+            + "{\"name\": \"name\", \"type\": \"string\"},"
+            + "{\"name\": \"age\", \"type\": \"int\"}"
+            + "]"
+            + "}";
+        Schema schema = new Schema.Parser().parse(schemaJson);
+        
+        // Create and send message
+        GenericRecord record = new GenericData.Record(schema);
+        record.put("name", "Alice");
+        record.put("age", 30);
+        
+        try (GenericAvroProducer producer = new GenericAvroProducer(bootstrapServers, serdes)) {
+            producer.send("test-topic", record).get();
+        }
+        
+        // Consume and verify
+        try (GenericAvroConsumer consumer = new GenericAvroConsumer(bootstrapServers, "test-group", serdes)) {
+            consumer.subscribe("test-topic");
+            List<ConsumerRecord<String, Object>> messages = consumer.poll(Duration.ofSeconds(5));
+            
+            GenericRecord received = (GenericRecord) messages.get(0).value();
+            assertEquals("Alice", received.get("name").toString());
+        }
+    }
+}
+```
+
+### Option 2: Using with Spring Boot (BDD/Cucumber)
 
 ```xml
 <dependency>
@@ -30,8 +93,6 @@ A comprehensive Java library that enables behavior-driven testing of Kafka appli
     <scope>test</scope>
 </dependency>
 ```
-
-### 2. Create Test Configuration
 
 ```java
 @SpringBootTest(classes = KafkaTestingFramework.class)
@@ -78,6 +139,45 @@ Feature: Order Processing with Avro
       | order_id | customer_id | status    |
       | 12345    | 1          | PROCESSED |
 ```
+
+## 🔧 Core Framework Components
+
+The framework provides several key classes for schema-agnostic Avro testing:
+
+### MockSchemaRegistry
+In-memory schema registry that stores schemas without external dependencies:
+```java
+MockSchemaRegistry registry = new MockSchemaRegistry();
+int schemaId = registry.register("topic-value", schema);
+Schema retrieved = registry.getSchemaById(schemaId);
+```
+
+### GenericAvroSerdes
+Factory for creating Kafka serializers and deserializers:
+```java
+GenericAvroSerdes serdes = new GenericAvroSerdes(registry);
+Serializer<Object> serializer = serdes.createSerializer();
+Deserializer<Object> deserializer = serdes.createDeserializer();
+```
+
+### GenericAvroProducer
+Wrapper for producing Avro messages with GenericRecord:
+```java
+try (GenericAvroProducer producer = new GenericAvroProducer(bootstrapServers, serdes)) {
+    producer.send(topic, genericRecord).get();
+}
+```
+
+### GenericAvroConsumer
+Wrapper for consuming Avro messages:
+```java
+try (GenericAvroConsumer consumer = new GenericAvroConsumer(bootstrapServers, groupId, serdes)) {
+    consumer.subscribe(topic);
+    List<ConsumerRecord<String, Object>> records = consumer.poll(Duration.ofSeconds(5));
+}
+```
+
+See [FRAMEWORK_USAGE.md](FRAMEWORK_USAGE.md) for complete examples and advanced usage.
 
 ## 📖 Available Step Definitions
 
