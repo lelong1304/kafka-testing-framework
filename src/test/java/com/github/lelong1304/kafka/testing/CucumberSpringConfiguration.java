@@ -15,7 +15,7 @@ import org.springframework.kafka.test.context.EmbeddedKafka;
 @CucumberContextConfiguration
 @SpringBootTest(classes = KafkaTestingFramework.class)
 @EmbeddedKafka(
-    partitions = 1,
+    partitions = 6,
     topics = {"orders", "processed-orders", "error-orders", "input-topic", "output-topic"},
     brokerProperties = {
         "listeners=PLAINTEXT://localhost:9092",

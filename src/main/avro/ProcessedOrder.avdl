@@ -1,0 +1,10 @@
+@namespace("com.example.testing")
+protocol ProcessedOrderProtocol {
+	record ProcessedOrder {
+		string orderId;
+		string processedBy;
+		long processedAt;
+		string result;
+		union { null, string } comments = null;
+	}
+}

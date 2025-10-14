@@ -14,6 +14,7 @@ import org.apache.avro.generic.GenericRecord;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.core.KafkaTemplate;
 
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -42,20 +43,24 @@ public class AvroSteps {
 
     @When("I send an Avro message to topic {string}:")
     public void iSendAnAvroMessageToTopic(String topic, DataTable dataTable) throws Exception {
-        Map<String, String> messageData = dataTable.asMaps(String.class, String.class).get(0);
-        
+        avroMessageCollector.startCollecting(topic);
+
+        List<Map<String, String>> dataTableMaps = dataTable.asMaps(String.class, String.class);
+
         Schema schema = schemaManager.getLatestSchema(topic + "-value");
         GenericRecord record = new GenericData.Record(schema);
-        
-        for (Map.Entry<String, String> entry : messageData.entrySet()) {
-            String fieldName = entry.getKey();
-            String fieldValue = entry.getValue();
-            
-            Schema.Field field = schema.getField(fieldName);
-            if (field != null) {
-                Object convertedValue = convertValue(fieldValue, field.schema());
-                record.put(fieldName, convertedValue);
-            }
+        for (Map<String, String> map : dataTableMaps) {
+            Iterator<String> iterator = map.values().iterator();
+
+                String fieldName = iterator.next();
+                String fieldValue = iterator.next();
+
+                Schema.Field field = schema.getField(fieldName);
+                if (field != null) {
+                    Object convertedValue = convertValue(fieldValue, field.schema());
+                    record.put(fieldName, convertedValue);
+                }
+
         }
         
         avroKafkaTemplate.send(topic, record);
@@ -64,20 +69,25 @@ public class AvroSteps {
 
     @When("I send an Avro message with key {string} to topic {string}:")
     public void iSendAnAvroMessageWithKeyToTopic(String key, String topic, DataTable dataTable) throws Exception {
-        Map<String, String> messageData = dataTable.asMaps(String.class, String.class).get(0);
+        avroMessageCollector.startCollecting(topic);
+
+        List<Map<String, String>> dataTableMaps = dataTable.asMaps(String.class, String.class);
         
         Schema schema = schemaManager.getLatestSchema(topic + "-value");
         GenericRecord record = new GenericData.Record(schema);
-        
-        for (Map.Entry<String, String> entry : messageData.entrySet()) {
-            String fieldName = entry.getKey();
-            String fieldValue = entry.getValue();
-            
+
+        for (Map<String, String> map : dataTableMaps) {
+            Iterator<String> iterator = map.values().iterator();
+
+            String fieldName = iterator.next();
+            String fieldValue = iterator.next();
+
             Schema.Field field = schema.getField(fieldName);
             if (field != null) {
                 Object convertedValue = convertValue(fieldValue, field.schema());
                 record.put(fieldName, convertedValue);
             }
+
         }
         
         avroKafkaTemplate.send(topic, key, record);
@@ -123,8 +133,6 @@ public class AvroSteps {
 
     @Then("I should receive exactly {int} Avro message(s) on topic {string} within {int} seconds")
     public void iShouldReceiveExactlyAvroMessagesOnTopicWithinSeconds(int expectedCount, String topic, int timeoutSeconds) {
-        avroMessageCollector.startCollecting(topic);
-        
         await()
             .atMost(timeoutSeconds, TimeUnit.SECONDS)
             .pollInterval(100, TimeUnit.MILLISECONDS)

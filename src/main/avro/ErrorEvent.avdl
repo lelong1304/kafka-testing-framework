@@ -1,0 +1,10 @@
+@namespace("com.example.testing")
+protocol ErrorEventProtocol {
+	record ErrorEvent {
+		string errorId;
+		string errorType;
+		string message;
+		long timestamp;
+		union { null, string } details = null;
+	}
+}

@@ -45,26 +45,4 @@ public class AvroSchemaManager {
     public void clearCache() {
         schemaCache.clear();
     }
-
-/*
-    public Schema getLatestSchema(String subject) throws Exception {
-        Schema cached = schemaCache.get(subject);
-        if (cached != null) {
-            return cached;
-        }
-        
-        Schema schema = schemaRegistryClient.getLatestSchemaMetadata(subject).getSchema();
-        schemaCache.put(subject, schema);
-        return schema;
-    }
-
-    public Schema getSchemaById(int id) throws Exception {
-        return schemaRegistryClient.getSchemaById(id);
-    }
-
-    public void clearCache() {
-        schemaCache.clear();
-    }
-
- */
 }

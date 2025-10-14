@@ -1,0 +1,11 @@
+@namespace("com.example.testing")
+protocol OrderProtocol {
+	record Order {
+		string orderId;
+		string customerId;
+		double amount;
+		string status;
+		long createdAt;
+		union { null, string } notes = null;
+	}
+}
